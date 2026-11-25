@@ -85,7 +85,7 @@ export function analyzeTailwindClasses(classListString: string): {
       return;
     }
 
-    // Check if later shorthand `p-*` / `m-*` overrides earlier axis class `px-*` / `py-*`
+    // Check if later shorthand `p-*` / `m-*` overrides earlier axis class `px-*` / `py-*` / `mx-*` / `my-*`
     if (bucket && /^padding-(x|y|t|r|b|l)$/.test(bucket)) {
       const laterAll = lastByKey.get(`${prefix}|padding-all`);
       if (laterAll && laterAll.idx > idx) {
@@ -94,6 +94,18 @@ export function analyzeTailwindClasses(classListString: string): {
           bucket,
           overriddenBy: laterAll.token,
           reason: `Axis padding "${token}" is superseded by later shorthand "${laterAll.token}"`,
+        });
+        return;
+      }
+    }
+    if (bucket && /^margin-(x|y)$/.test(bucket)) {
+      const laterAll = lastByKey.get(`${prefix}|margin-all`);
+      if (laterAll && laterAll.idx > idx) {
+        conflicts.push({
+          className: token,
+          bucket,
+          overriddenBy: laterAll.token,
+          reason: `Axis margin "${token}" is superseded by later shorthand "${laterAll.token}"`,
         });
         return;
       }
@@ -128,8 +140,8 @@ export function cleanTailwindMarkup(markup: string): {
 
 export function computeCssSpecificity(selector: string): SpecificityTuple {
   const clean = selector
-    .replace(/::[\w-]+/g, ' __pe__ ')
-    .replace(/\[[^\]]+\]/g, ' .__attr__ ');
+    .replace(/::[\w-]+/g, ' pe ')
+    .replace(/\[[^\]]+\]/g, ' .attr ');
   const ids = (clean.match(/#[A-Za-z_-][\w-]*/g) ?? []).length;
   const classes =
     (clean.match(/\.[A-Za-z_-][\w-]*/g) ?? []).length +
@@ -297,7 +309,9 @@ export function extractDomSnapshot(doc: Document): LayoutNodeSnapshot[] {
   const results: LayoutNodeSnapshot[] = [];
   let seq = 0;
 
-  const walk = (el: Element, depth: number, parentContextZ: string | null) => {
+  const px = (v: string) => Math.round(parseFloat(v) || 0);
+
+  const walk = (el: Element, depth: number, parentId: string | null, parentContextZ: string | null) => {
     const cs = doc.defaultView?.getComputedStyle(el);
     const rect = el.getBoundingClientRect();
     if (!cs || rect.width === 0 || rect.height === 0) return;
@@ -322,6 +336,7 @@ export function extractDomSnapshot(doc: Document): LayoutNodeSnapshot[] {
 
     results.push({
       id,
+      parentId,
       tag: el.tagName.toLowerCase(),
       idAttr: el.id || undefined,
       classes,
@@ -331,6 +346,11 @@ export function extractDomSnapshot(doc: Document): LayoutNodeSnapshot[] {
         y: Math.round(rect.top),
         width: Math.round(rect.width),
         height: Math.round(rect.height),
+      },
+      boxModel: {
+        margin: [px(cs.marginTop), px(cs.marginRight), px(cs.marginBottom), px(cs.marginLeft)],
+        border: [px(cs.borderTopWidth), px(cs.borderRightWidth), px(cs.borderBottomWidth), px(cs.borderLeftWidth)],
+        padding: [px(cs.paddingTop), px(cs.paddingRight), px(cs.paddingBottom), px(cs.paddingLeft)],
       },
       display: cs.display,
       position: cs.position,
@@ -351,10 +371,10 @@ export function extractDomSnapshot(doc: Document): LayoutNodeSnapshot[] {
       : parentContextZ;
 
     for (const child of Array.from(el.children)) {
-      walk(child, depth + 1, nextParentZ);
+      walk(child, depth + 1, id, nextParentZ);
     }
   };
 
-  walk(root, 0, null);
+  walk(root, 0, null, null);
   return results;
 }

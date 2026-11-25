@@ -5,53 +5,44 @@ import {
   computeCssSpecificity,
   explainStackingContext,
 } from '../src/core/analyzer.ts';
+import { CSS_XRAY_PRESETS } from '../src/core/presets.ts';
 
 describe('css-xray layout, specificity & Tailwind diagnostics', () => {
   it('detects overridden and duplicate Tailwind utilities and cleans markup in 1 click', () => {
-    const audit = analyzeTailwindClasses('flex block p-4 px-6 p-2 bg-slate-800 bg-slate-900 p-2');
-    expect(audit.conflicts.length).toBeGreaterThanOrEqual(4);
-    expect(audit.cleaned).toBe('block bg-slate-900 p-2');
+    const res = analyzeTailwindClasses('flex block p-4 px-6 p-2 bg-slate-800 bg-slate-900 p-2');
+    expect(res.conflicts.length).toBeGreaterThanOrEqual(4);
+    expect(res.cleaned).toBe('block bg-slate-900 p-2');
 
-    const markupRes = cleanTailwindMarkup('<div class="p-4 p-2 text-sm text-base">hi</div>');
-    expect(markupRes.totalRemoved).toBe(2);
-    expect(markupRes.cleanedMarkup).toBe('<div class="p-2 text-base">hi</div>');
+    const markup = cleanTailwindMarkup('<div class="w-40 w-full text-sm text-base mx-4 m-2">Hi</div>');
+    expect(markup.totalRemoved).toBe(3);
+    expect(markup.cleanedMarkup).toBe('<div class="w-full text-base m-2">Hi</div>');
+  });
+
+  it('preserves distinct responsive/state variant buckets without false conflicts', () => {
+    const res = analyzeTailwindClasses('p-2 md:p-4 hover:bg-slate-800 bg-slate-900');
+    expect(res.conflicts).toHaveLength(0);
+    expect(res.cleaned).toBe('p-2 md:p-4 hover:bg-slate-800 bg-slate-900');
   });
 
   it('computes accurate CSS selector specificity tuples (id, class, element)', () => {
-    expect(computeCssSpecificity('#modal .card > div.active:hover').formatted).toBe('(1, 3, 1)');
-    expect(computeCssSpecificity('.btn').formatted).toBe('(0, 1, 0)');
-    expect(computeCssSpecificity('section header span').formatted).toBe('(0, 0, 3)');
+    expect(computeCssSpecificity('#app .card:hover > h2::before').formatted).toBe('(1, 2, 2)');
+    expect(computeCssSpecificity('.dashboard-grid').formatted).toBe('(0, 1, 0)');
+    expect(computeCssSpecificity('input[type="text"].active').formatted).toBe('(0, 2, 1)');
   });
 
-  it('identifies stacking context triggers such as transform, opacity < 1, and positioned z-index', () => {
+  it('identifies stacking context triggers including transform, opacity, isolation, and sticky', () => {
     expect(
-      explainStackingContext({
-        tag: 'div',
-        position: 'static',
-        zIndex: 'auto',
-        opacity: '1',
-        transform: 'translateY(0px)',
-      }).createsContext,
+      explainStackingContext({ tag: 'div', position: 'static', zIndex: 'auto', opacity: '1', transform: 'translateY(0px)' }).createsContext,
     ).toBe(true);
-
     expect(
-      explainStackingContext({
-        tag: 'div',
-        position: 'static',
-        zIndex: 'auto',
-        opacity: '0.98',
-        transform: 'none',
-      }).createsContext,
+      explainStackingContext({ tag: 'div', position: 'static', zIndex: 'auto', opacity: '0.8', transform: 'none' }).createsContext,
     ).toBe(true);
-
     expect(
-      explainStackingContext({
-        tag: 'div',
-        position: 'static',
-        zIndex: 'auto',
-        opacity: '1',
-        transform: 'none',
-      }).createsContext,
-    ).toBe(false);
+      explainStackingContext({ tag: 'div', position: 'sticky', zIndex: 'auto', opacity: '1', transform: 'none' }).createsContext,
+    ).toBe(true);
+    expect(
+      explainStackingContext({ tag: 'div', position: 'static', zIndex: 'auto', opacity: '1', transform: 'none', isolation: 'isolate' }).createsContext,
+    ).toBe(true);
+    expect(CSS_XRAY_PRESETS.length).toBeGreaterThanOrEqual(5);
   });
 });

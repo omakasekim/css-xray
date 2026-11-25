@@ -94,4 +94,33 @@ export const CSS_XRAY_PRESETS: CssXrayPreset[] = [
   border-color: #475569;
 }`,
   },
+  {
+    id: 'opacity-isolation',
+    name: 'Opacity & Isolation Layers',
+    tag: 'PAINT ISOLATION',
+    description: 'Nested opacity < 1 and CSS isolation: isolate cards creating independent z-index planes.',
+    html: `<div class="canvas-shell grid grid-cols-2 gap-4 p-4 bg-slate-900 rounded-xl border">
+  <article class="fade-card p-4 bg-slate-800 rounded-lg border">
+    <div class="font-semibold">Opacity 0.92 Card</div>
+    <div class="tooltip-pop mt-2 p-2 bg-amber-900 rounded-lg border">Tooltip z:500</div>
+  </article>
+  <article class="isolated-card p-4 bg-slate-800 rounded-lg border">
+    <div class="font-semibold">isolation: isolate Card</div>
+    <div class="mt-2 p-2 bg-emerald-900 rounded-lg border">Independent Paint Plane</div>
+  </article>
+</div>`,
+    css: `.fade-card {
+  opacity: 0.92;
+  position: relative;
+}
+.tooltip-pop {
+  position: relative;
+  z-index: 500;
+}
+.isolated-card {
+  isolation: isolate;
+  position: relative;
+  z-index: 2;
+}`,
+  },
 ];

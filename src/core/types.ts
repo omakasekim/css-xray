@@ -21,11 +21,17 @@ export interface StackingContextInfo {
 
 export interface LayoutNodeSnapshot {
   id: string;
+  parentId: string | null;
   tag: string;
   idAttr?: string;
   classes: string[];
   depth: number;
   rect: { x: number; y: number; width: number; height: number };
+  boxModel: {
+    margin: [number, number, number, number];
+    border: [number, number, number, number];
+    padding: [number, number, number, number];
+  };
   display: string;
   position: string;
   zIndex: string;
