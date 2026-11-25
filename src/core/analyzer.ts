@@ -159,6 +159,44 @@ export function computeCssSpecificity(selector: string): SpecificityTuple {
   };
 }
 
+export function compareSpecificityDuel(selA: string, selB: string): {
+  a: SpecificityTuple;
+  b: SpecificityTuple;
+  winner: 'A' | 'B' | 'tie';
+  explanation: string;
+} {
+  const a = computeCssSpecificity(selA);
+  const b = computeCssSpecificity(selB);
+  const cmp =
+    a.ids !== b.ids
+      ? a.ids - b.ids
+      : a.classes !== b.classes
+        ? a.classes - b.classes
+        : a.elements - b.elements;
+  if (cmp > 0) {
+    return {
+      a,
+      b,
+      winner: 'A',
+      explanation: `Selector A ${a.formatted} beats Selector B ${b.formatted} (${a.ids > b.ids ? 'more IDs' : a.classes > b.classes ? 'more classes/attributes/pseudo-classes' : 'more element/pseudo-element tags'}).`,
+    };
+  }
+  if (cmp < 0) {
+    return {
+      a,
+      b,
+      winner: 'B',
+      explanation: `Selector B ${b.formatted} beats Selector A ${a.formatted} (${b.ids > a.ids ? 'more IDs' : b.classes > a.classes ? 'more classes/attributes/pseudo-classes' : 'more element/pseudo-element tags'}).`,
+    };
+  }
+  return {
+    a,
+    b,
+    winner: 'tie',
+    explanation: `Tie at ${a.formatted} — the rule appearing later in stylesheet source order wins.`,
+  };
+}
+
 export function explainStackingContext(style: {
   tag: string;
   position: string;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeTailwindClasses,
   cleanTailwindMarkup,
+  compareSpecificityDuel,
   computeCssSpecificity,
   explainStackingContext,
 } from '../src/core/analyzer.ts';
@@ -24,10 +25,12 @@ describe('css-xray layout, specificity & Tailwind diagnostics', () => {
     expect(res.cleaned).toBe('p-2 md:p-4 hover:bg-slate-800 bg-slate-900');
   });
 
-  it('computes accurate CSS selector specificity tuples (id, class, element)', () => {
+  it('computes accurate CSS selector specificity tuples and settles selector duels', () => {
     expect(computeCssSpecificity('#app .card:hover > h2::before').formatted).toBe('(1, 2, 2)');
     expect(computeCssSpecificity('.dashboard-grid').formatted).toBe('(0, 1, 0)');
     expect(computeCssSpecificity('input[type="text"].active').formatted).toBe('(0, 2, 1)');
+    expect(compareSpecificityDuel('#app .card', '.a.b.c.d').winner).toBe('A');
+    expect(compareSpecificityDuel('.btn', '.btn:hover').winner).toBe('B');
   });
 
   it('identifies stacking context triggers including transform, opacity, isolation, and sticky', () => {

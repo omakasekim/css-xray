@@ -17,6 +17,7 @@ import {
 import {
   buildPreviewUtilityCss,
   cleanTailwindMarkup,
+  compareSpecificityDuel,
   computeCssSpecificity,
   extractDomSnapshot,
 } from './core/analyzer.ts';
@@ -90,6 +91,9 @@ export function App() {
   const [showStackingOnly, setShowStackingOnly] = useState(false);
   const [cleanupBanner, setCleanupBanner] = useState<string | null>(null);
   const [copiedHtml, setCopiedHtml] = useState(false);
+  const [duelA, setDuelA] = useState('#app .nav > a:hover');
+  const [duelB, setDuelB] = useState('.nav .link.active::before');
+  const duelResult = useMemo(() => compareSpecificityDuel(duelA, duelB), [duelA, duelB]);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const orbitDragRef = useRef<{ sx: number; sy: number; rx: number; rz: number } | null>(null);
@@ -676,6 +680,41 @@ export function App() {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Live Selector Specificity Duel Calculator */}
+          <div className="space-y-2 rounded-xl border border-slate-800 bg-[#0B0F17] p-3.5">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-cyan-300">
+              <span>Specificity Duel Calculator</span>
+              <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 font-mono text-[10px]">
+                {duelResult.winner === 'tie' ? 'TIE (SOURCE ORDER)' : `WINNER: ${duelResult.winner}`}
+              </span>
+            </div>
+            <div className="space-y-1.5 font-mono text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 text-center font-bold text-sky-300">A</span>
+                <input
+                  value={duelA}
+                  onChange={(e) => setDuelA(e.target.value)}
+                  className="flex-1 rounded border border-slate-700 bg-[#111827] px-2 py-1 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                />
+                <span className={`rounded px-1.5 py-0.5 ${duelResult.winner === 'A' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                  {duelResult.a.formatted}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 text-center font-bold text-violet-300">B</span>
+                <input
+                  value={duelB}
+                  onChange={(e) => setDuelB(e.target.value)}
+                  className="flex-1 rounded border border-slate-700 bg-[#111827] px-2 py-1 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                />
+                <span className={`rounded px-1.5 py-0.5 ${duelResult.winner === 'B' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                  {duelResult.b.formatted}
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400">{duelResult.explanation}</p>
           </div>
         </aside>
       </div>
